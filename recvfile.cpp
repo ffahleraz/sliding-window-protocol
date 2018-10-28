@@ -77,10 +77,10 @@ int main(int argc, char * argv[]) {
                 int shift = 0;
                 for (int i = 1; i < window_size; i++) {
                     shift += 1;
-                    if (window_recv_mask[i] == false) break;
+                    if (!window_recv_mask[i]) break;
                 }
                 for (int i = 0; i < window_size - shift; i++) {
-                    window_recv_mask[i] = window_recv_mask[i + window_size];
+                    window_recv_mask[i] = window_recv_mask[i + shift];
                 }
                 for (int i = window_size - shift; i < window_size; i++) {
                     window_recv_mask[i] = false;

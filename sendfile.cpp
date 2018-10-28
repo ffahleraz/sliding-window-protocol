@@ -1,6 +1,6 @@
 #include <iostream>
 #include <thread>
-#include <ctime>
+#include <chrono>
 
 #include <stdio.h>
 #include <sys/socket.h>
@@ -8,30 +8,42 @@
 
 #include "helpers.h"
 
+#define TIMEOUT 100
+
+#define current_time chrono::high_resolution_clock::now
+#define time_stamp chrono::high_resolution_clock::time_point
+#define elapsed_time(end, start) chrono::duration_cast<chrono::milliseconds>(end - start).count()
+
 using namespace std;
 
 int socket_fd;
-unsigned int window_size;
 char *dest_ip;
 int dest_port;
 ssize_t buff_size;
 struct hostent *dest_hnet;
 struct sockaddr_in server_addr, client_addr;
-bool *window_recv_mask;
+
+unsigned int window_size;
+bool *window_ack_mask;
+unsigned int lar, lfs;
 
 void listen_ack() {
-    while (true) {
-        char ack[ACK_SIZE];
-        size_t ack_size;
-        unsigned int ack_seq_num;
-        bool ack_error;
-        bool ack_conf;
+    char ack[ACK_SIZE];
+    size_t ack_size;
+    unsigned int ack_seq_num;
+    bool ack_error;
+    bool ack_conf;
 
+    while (true) {
         socklen_t server_addr_size;
         ack_size = recvfrom(socket_fd, (char *)ack, ACK_SIZE, 
                 MSG_WAITALL, (struct sockaddr *) &server_addr, 
                 &server_addr_size);
         ack_error = read_ack(&ack_seq_num, &ack_conf, ack);
+
+        if (ack_seq_num >= lar + 1 && ack_seq_num <= lfs) {
+            window_ack_mask[ack_seq_num - (lar + 1)] = true;
+        }
 
         cout << "[RECV ACK " << ack_seq_num << "]" << endl;
     }
@@ -88,30 +100,64 @@ int main(int argc, char *argv[]) {
     size_t data_size;
     
     /* Initialize sliding window variables */
-    unsigned int seq_num = 0;
-    unsigned int lar, lfs;
-    time_t window_sent_time[window_size];
-    window_recv_mask = new bool[window_size];
+    time_stamp window_sent_time[window_size];
+    bool window_sent_mask[window_size];
+    window_ack_mask = new bool[window_size];
     
     for (int i = 0; i < window_size; i++) {
-        window_recv_mask[i] = false;
+        window_sent_mask[i] = false;
+        window_ack_mask[i] = false;
     }
 
     /* Start thread to listen for ack */
     thread recv_thread(listen_ack);
 
-    while (seq_num < 24) {
-        strcpy(data, "hello asu lu semua lkonto");
-        data_size = (size_t)strlen(data);
-        frame_size = create_frame(seq_num, frame, data, data_size);
+    time_stamp huyu = current_time();
 
-        sendto(socket_fd, frame, frame_size, MSG_CONFIRM, 
-                (const struct sockaddr *) &server_addr, sizeof(server_addr));
+    lar = -1;
+    lfs = lar + window_size;
+    while (true) {
+        /* Check window ack mask, shift window if possible */
+        if (window_ack_mask[0]) {
+            int shift = 0;
+            for (int i = 1; i < window_size; i++) {
+                shift += 1;
+                if (!window_ack_mask[i]) break;
+            }
+            for (int i = 0; i < window_size - shift; i++) {
+                window_sent_mask[i] = window_sent_mask[i + shift];
+                window_ack_mask[i] = window_ack_mask[i + shift];
+                window_sent_time[i] = window_sent_time[i + shift];
+            }
+            for (int i = window_size - shift; i < window_size; i++) {
+                window_sent_mask[i] = false;
+                window_ack_mask[i] = false;
+            }
+            lar += shift;
+            lfs = lar + window_size;
+        }
 
-        cout << "[SENT FRAME " << seq_num << "] " << data << endl;
-        seq_num ++;
+        for (int i = 0; i < window_size; i ++) {
+            if (!window_sent_mask[i] || (!window_ack_mask[i] && elapsed_time(current_time(), window_sent_time[i]) > TIMEOUT)) {
+                strcpy(data, "hello asu lu semua lkonto");
+                data_size = (size_t)strlen(data);
+
+                unsigned int seq_num = lar + i + 1;
+
+                if (seq_num > 100) exit(1);
+
+                frame_size = create_frame(seq_num, frame, data, data_size);
+
+                sendto(socket_fd, frame, frame_size, MSG_CONFIRM, 
+                        (const struct sockaddr *) &server_addr, sizeof(server_addr));
+                window_sent_mask[i] = true;
+                window_sent_time[i] = current_time();
+
+                cout << "[SENT FRAME " << seq_num << "] " << data << endl;
+            }
+        }
     }
 
     recv_thread.join();
-    delete [] window_recv_mask;
+    delete [] window_ack_mask;
 }
