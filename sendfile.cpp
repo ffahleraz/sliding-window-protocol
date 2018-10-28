@@ -1,32 +1,43 @@
 #include <iostream>
+#include <thread>
+#include <ctime>
 
 #include <stdio.h>
-#include <stdlib.h> 
-#include <string.h>
-#include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
 #include <netdb.h>
 
 #include "helpers.h"
 
 using namespace std;
 
-void listen_ack(bool *window_recv_mask) {
+int socket_fd;
+unsigned int window_size;
+char *dest_ip;
+int dest_port;
+ssize_t buff_size;
+struct hostent *dest_hnet;
+struct sockaddr_in server_addr, client_addr;
+bool *window_recv_mask;
+
+void listen_ack() {
     while (true) {
-        
+        char ack[ACK_SIZE];
+        size_t ack_size;
+        unsigned int ack_seq_num;
+        bool ack_error;
+        bool ack_conf;
+
+        socklen_t server_addr_size;
+        ack_size = recvfrom(socket_fd, (char *)ack, ACK_SIZE, 
+                MSG_WAITALL, (struct sockaddr *) &server_addr, 
+                &server_addr_size);
+        ack_error = read_ack(&ack_seq_num, &ack_conf, ack);
+
+        cout << "[RECV ACK " << ack_seq_num << "]" << endl;
     }
 }
 
-int main(int argc, char *argv[]) { 
-    int socket_fd;
-    unsigned int window_size;
-    char *dest_ip;
-    int dest_port;
-    ssize_t buff_size;
-    struct hostent *dest_hnet;
-    struct sockaddr_in server_addr, client_addr;
-
+int main(int argc, char *argv[]) {
     if (argc == 5) {
         window_size = atoi(argv[1]);
         buff_size = atoi(argv[2]);
@@ -56,7 +67,7 @@ int main(int argc, char *argv[]) {
     /* Fill client address data structure */
     client_addr.sin_family = AF_INET;
     client_addr.sin_addr.s_addr = INADDR_ANY; 
-    client_addr.sin_port = htons(5051);
+    client_addr.sin_port = htons(0);
 
     /* Create socket file descriptor */ 
     if ((socket_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -73,21 +84,21 @@ int main(int argc, char *argv[]) {
 
     char frame[MAX_FRAME_SIZE];
     char data[MAX_DATA_SIZE];
-    char ack[ACK_SIZE];
     size_t frame_size;
     size_t data_size;
-    size_t ack_size;
-    socklen_t server_addr_size;
+    
+    /* Initialize sliding window variables */
     unsigned int seq_num = 0;
-    unsigned int ack_seq_num;
-    bool ack_error;
-    bool ack_conf;
-
     unsigned int lar, lfs;
-    bool window_recv_mask[window_size];
+    time_t window_sent_time[window_size];
+    window_recv_mask = new bool[window_size];
+    
     for (int i = 0; i < window_size; i++) {
         window_recv_mask[i] = false;
     }
+
+    /* Start thread to listen for ack */
+    thread recv_thread(listen_ack);
 
     while (seq_num < 24) {
         strcpy(data, "hello asu lu semua lkonto");
@@ -99,12 +110,8 @@ int main(int argc, char *argv[]) {
 
         cout << "[SENT FRAME " << seq_num << "] " << data << endl;
         seq_num ++;
-
-        ack_size = recvfrom(socket_fd, (char *)ack, ACK_SIZE, 
-                MSG_WAITALL, (struct sockaddr *) &server_addr, 
-                &server_addr_size);
-        ack_error = read_ack(&ack_seq_num, &ack_conf, ack);
-
-        cout << "[RECV ACK " << ack_seq_num << "]" << endl;
     }
+
+    recv_thread.join();
+    delete [] window_recv_mask;
 }

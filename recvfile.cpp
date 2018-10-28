@@ -1,11 +1,7 @@
 #include<iostream>
 
 #include <stdio.h>
-#include <stdlib.h> 
-#include <string.h>
-#include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
 #include <netdb.h>
 
 #include "helpers.h"
@@ -58,26 +54,26 @@ int main(int argc, char * argv[]) {
     bool frame_error;
     unsigned int recv_seq_num;
     
-    unsigned int lnf, laf;
+    unsigned int lfr, laf;
     bool window_recv_mask[window_size];
     for (int i = 0; i < window_size; i++) {
         window_recv_mask[i] = false;
     }
     
-    lnf = 0;
-    laf = lnf + window_size;
+    lfr = -1;
+    laf = lfr + window_size;
     while (true) {
         frame_size = recvfrom(socket_fd, (char *)frame, MAX_FRAME_SIZE, 
                 MSG_WAITALL, (struct sockaddr *) &client_addr, 
                 &client_addr_size);
         frame_error = read_frame(&recv_seq_num, data, &data_size, frame);
 
-        if (recv_seq_num < laf) {
+        if (recv_seq_num <= laf) {
             create_ack(recv_seq_num, ack, frame_error);
             sendto(socket_fd, ack, ACK_SIZE, MSG_CONFIRM, 
                     (const struct sockaddr *) &client_addr, client_addr_size);
             
-            if (recv_seq_num == lnf) {
+            if (recv_seq_num == lfr + 1) {
                 int shift = 0;
                 for (int i = 1; i < window_size; i++) {
                     shift += 1;
@@ -89,10 +85,10 @@ int main(int argc, char * argv[]) {
                 for (int i = window_size - shift; i < window_size; i++) {
                     window_recv_mask[i] = false;
                 }
-                lnf += shift;
-                laf = lnf + window_size;
-            } else if (recv_seq_num > lnf) {
-                window_recv_mask[recv_seq_num - lnf] = true;
+                lfr += shift;
+                laf = lfr + window_size;
+            } else if (recv_seq_num > lfr + 1) {
+                window_recv_mask[recv_seq_num - (lfr + 1)] = true;
             }
 
             data[data_size] = '\0';
