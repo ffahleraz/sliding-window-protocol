@@ -8,22 +8,24 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
-#define MAX_LINE 256
+#include "helpers.h"
 
 using namespace std;
 
 int main(int argc, char * argv[]) {
     int socket_fd;
-    int port;
+    unsigned int port;
+    unsigned int window_size;
     ssize_t buff_size;
     struct sockaddr_in server_addr, client_addr;
 
-    if (argc == 3) {
-        buff_size = atoi(argv[1]);
-        port = atoi(argv[2]);
+    if (argc == 4) {
+        window_size = atoi(argv[1]);
+        buff_size = atoi(argv[2]);
+        port = atoi(argv[3]);
     } else {
-        cerr << "usage: ./recvfile <buffer_size> <port>" << endl;
-        return 1; 
+        cerr << "usage: ./recvfile <window_size> <buffer_size> <port>" << endl;
+        return 1;
     }
 
     memset(&server_addr, 0, sizeof(server_addr)); 
@@ -47,12 +49,57 @@ int main(int argc, char * argv[]) {
         return 1;
     }
 
-    char buffer[buff_size];
-    ssize_t recv_size;
-    socklen_t ca_len;
-    recv_size = recvfrom(socket_fd, (char * )buffer, buff_size, 
-            MSG_WAITALL, (struct sockaddr * ) &client_addr, &ca_len);
-    buffer[recv_size] = '\0';
+    char frame[MAX_FRAME_SIZE];
+    char data[MAX_DATA_SIZE];
+    char ack[ACK_SIZE];
+    size_t frame_size;
+    size_t data_size;
+    socklen_t client_addr_size;
+    bool frame_error;
+    unsigned int recv_seq_num;
+    
+    unsigned int lnf, laf;
+    bool window_recv_mask[window_size];
+    for (int i = 0; i < window_size; i++) {
+        window_recv_mask[i] = false;
+    }
+    
+    lnf = 0;
+    laf = lnf + window_size;
+    while (true) {
+        frame_size = recvfrom(socket_fd, (char *)frame, MAX_FRAME_SIZE, 
+                MSG_WAITALL, (struct sockaddr *) &client_addr, 
+                &client_addr_size);
+        frame_error = read_frame(&recv_seq_num, data, &data_size, frame);
 
-    cout << buffer << endl;
+        if (recv_seq_num < laf) {
+            create_ack(recv_seq_num, ack, frame_error);
+            sendto(socket_fd, ack, ACK_SIZE, MSG_CONFIRM, 
+                    (const struct sockaddr *) &client_addr, client_addr_size);
+            
+            if (recv_seq_num == lnf) {
+                int shift = 0;
+                for (int i = 1; i < window_size; i++) {
+                    shift += 1;
+                    if (window_recv_mask[i] == false) break;
+                }
+                for (int i = 0; i < window_size - shift; i++) {
+                    window_recv_mask[i] = window_recv_mask[i + window_size];
+                }
+                for (int i = window_size - shift; i < window_size; i++) {
+                    window_recv_mask[i] = false;
+                }
+                lnf += shift;
+                laf = lnf + window_size;
+            } else if (recv_seq_num > lnf) {
+                window_recv_mask[recv_seq_num - lnf] = true;
+            }
+
+            data[data_size] = '\0';
+            cout << "[RECV FRAME " << recv_seq_num << "] " << data << endl;
+            cout << "[SENT ACK " << recv_seq_num << "]" << endl;
+        } else {
+            cout << "[IGN FRAME " << recv_seq_num << "] " << data << endl;
+        }
+    }
 }

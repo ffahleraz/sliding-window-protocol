@@ -1,4 +1,4 @@
-#include<iostream>
+#include <iostream>
 
 #include <stdio.h>
 #include <stdlib.h> 
@@ -8,38 +8,55 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
+#include "helpers.h"
+
 using namespace std;
 
-int main(int argc, char * argv[]) { 
+void listen_ack(bool *window_recv_mask) {
+    while (true) {
+        
+    }
+}
+
+int main(int argc, char *argv[]) { 
     int socket_fd;
-    int buff_size;
+    unsigned int window_size;
     char *dest_ip;
     int dest_port;
+    ssize_t buff_size;
     struct hostent *dest_hnet;
-    struct sockaddr_in dest_addr;
+    struct sockaddr_in server_addr, client_addr;
 
-    if (argc == 4) {
-        buff_size = atoi(argv[1]);
-        dest_ip = argv[2];
-        dest_port = atoi(argv[3]);
+    if (argc == 5) {
+        window_size = atoi(argv[1]);
+        buff_size = atoi(argv[2]);
+        dest_ip = argv[3];
+        dest_port = atoi(argv[4]);
     } else {
-        cerr << "usage: ./sendfile <buffer_size> <destination_ip> <destination_port>" << endl;
+        cerr << "usage: ./sendfile <window_size> <buffer_size> <destination_ip> <destination_port>" << endl;
         return 1; 
     }
 
-    /* Get hostnet from destination hostname or IP address */ 
+    /* Get hostnet from server hostname or IP address */ 
     dest_hnet = gethostbyname(dest_ip); 
     if (!dest_hnet) {
         cerr << "unknown host: " << dest_ip << endl;
         return 1;
     }
 
-    /* Fill destination address data structure */
-    memset(&dest_addr, 0, sizeof(dest_addr));
-    dest_addr.sin_family = AF_INET;
-    bcopy(dest_hnet->h_addr, (char * )&dest_addr.sin_addr, 
+    memset(&server_addr, 0, sizeof(server_addr)); 
+    memset(&client_addr, 0, sizeof(client_addr)); 
+
+    /* Fill server address data structure */
+    server_addr.sin_family = AF_INET;
+    bcopy(dest_hnet->h_addr, (char *)&server_addr.sin_addr, 
             dest_hnet->h_length); 
-    dest_addr.sin_port = htons(dest_port);
+    server_addr.sin_port = htons(dest_port);
+
+    /* Fill client address data structure */
+    client_addr.sin_family = AF_INET;
+    client_addr.sin_addr.s_addr = INADDR_ANY; 
+    client_addr.sin_port = htons(5051);
 
     /* Create socket file descriptor */ 
     if ((socket_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -47,10 +64,47 @@ int main(int argc, char * argv[]) {
         return 1;
     }
 
-    char buffer[buff_size];
-    strcpy(buffer, "hello");
+    /* Bind socket to client address */
+    if (bind(socket_fd, (const struct sockaddr *)&client_addr, 
+            sizeof(client_addr)) < 0) { 
+        cerr << "socket binding failed" << endl;
+        return 1;
+    }
 
-    sendto(socket_fd, buffer, buff_size, MSG_CONFIRM, 
-            (const struct sockaddr *) &dest_addr, sizeof(dest_addr)); 
-    cout << buffer << endl;
+    char frame[MAX_FRAME_SIZE];
+    char data[MAX_DATA_SIZE];
+    char ack[ACK_SIZE];
+    size_t frame_size;
+    size_t data_size;
+    size_t ack_size;
+    socklen_t server_addr_size;
+    unsigned int seq_num = 0;
+    unsigned int ack_seq_num;
+    bool ack_error;
+    bool ack_conf;
+
+    unsigned int lar, lfs;
+    bool window_recv_mask[window_size];
+    for (int i = 0; i < window_size; i++) {
+        window_recv_mask[i] = false;
+    }
+
+    while (seq_num < 24) {
+        strcpy(data, "hello asu lu semua lkonto");
+        data_size = (size_t)strlen(data);
+        frame_size = create_frame(seq_num, frame, data, data_size);
+
+        sendto(socket_fd, frame, frame_size, MSG_CONFIRM, 
+                (const struct sockaddr *) &server_addr, sizeof(server_addr));
+
+        cout << "[SENT FRAME " << seq_num << "] " << data << endl;
+        seq_num ++;
+
+        ack_size = recvfrom(socket_fd, (char *)ack, ACK_SIZE, 
+                MSG_WAITALL, (struct sockaddr *) &server_addr, 
+                &server_addr_size);
+        ack_error = read_ack(&ack_seq_num, &ack_conf, ack);
+
+        cout << "[RECV ACK " << ack_seq_num << "]" << endl;
+    }
 }
