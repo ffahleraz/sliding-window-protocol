@@ -179,7 +179,7 @@ int main(int argc, char *argv[]) {
                         window_sent_mask[i] = true;
                         window_sent_time[i] = current_time();
 
-                        cout << "[SENT FRAME " << seq_num << "] " << data << endl;
+                        cout << "[SENT FRAME " << seq_num << "] " << data_size << " bytes" << endl;
                     }
                 }
             }
@@ -187,14 +187,14 @@ int main(int argc, char *argv[]) {
             if (lar >= seq_count - 1) break;
         }
 
-        cout << "huhuhuh" << endl;
         if (buffer_size < max_buffer_size) break;
-        cout << "asjkdnajsdfa" << endl;
     }
-    
-    cout << "harusnya kelar gan" << endl;
 
-    recv_thread.join();
+    cout << "harusnya kelar gan" << endl;
+    
     delete [] window_ack_mask;
     delete [] window_sent_time;
+    recv_thread.join();
+
+    return 0;
 }

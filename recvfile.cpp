@@ -92,14 +92,14 @@ int main(int argc, char * argv[]) {
                     window_recv_mask[recv_seq_num - (lfr + 1)] = true;
                 }
                 data[data_size] = '\0';
-                cout << "[RECV FRAME " << recv_seq_num << "] " << data << endl;
+                cout << "[RECV FRAME " << recv_seq_num << "] " << data_size << " bytes" << endl;
                 cout << "[SENT ACK " << recv_seq_num << "]" << endl;
             } else {
-                cout << "[ERR FRAME " << recv_seq_num << "] " << data << endl;
+                cout << "[ERR FRAME " << recv_seq_num << "] " << data_size << " bytes" << endl;
                 cout << "[SENT NAK " << recv_seq_num << "]" << endl;
             }
         } else {
-            cout << "[IGN FRAME " << recv_seq_num << "] " << data << endl;
+            cout << "[IGN FRAME " << recv_seq_num << "] " << data_size << " bytes" << endl;
         }
     }
 }
