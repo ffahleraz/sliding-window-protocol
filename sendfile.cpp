@@ -3,6 +3,7 @@
 #include <chrono>
 
 #include <stdio.h>
+#include <unistd.h>
 #include <sys/socket.h>
 #include <netdb.h>
 
@@ -68,7 +69,7 @@ int main(int argc, char *argv[]) {
     if (argc == 6) {
         fname = argv[1];
         window_size = atoi(argv[2]);
-        max_buffer_size = atoi(argv[3]);
+        max_buffer_size = MAX_DATA_SIZE * (size_t) atoi(argv[3]);
         dest_ip = argv[4];
         dest_port = atoi(argv[5]);
     } else {
@@ -110,14 +111,19 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    /* Start thread to listen for ack */
-    thread recv_thread(listen_ack);
+    if (access(fname, F_OK) == -1) {
+        cerr << "file doesn't exist: " << fname << endl;
+        return 1;
+    }
 
     /* Open file to send */
     FILE *file = fopen(fname, "rb");
     char *buffer;
     buffer = new char[max_buffer_size];
     size_t buffer_size;
+
+    /* Start thread to listen for ack */
+    thread recv_thread(listen_ack);
 
     /* Send file */
     char frame[MAX_FRAME_SIZE];
