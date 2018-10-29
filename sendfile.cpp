@@ -8,7 +8,7 @@
 
 #include "helpers.h"
 
-#define TIMEOUT 100
+#define TIMEOUT 10
 
 #define current_time chrono::high_resolution_clock::now
 #define time_stamp chrono::high_resolution_clock::time_point
@@ -26,7 +26,7 @@ struct sockaddr_in server_addr, client_addr;
 unsigned int window_size;
 bool *window_ack_mask;
 time_stamp *window_sent_time;
-unsigned int lar, lfs;
+ssize_t lar, lfs;
 
 time_stamp TMIN = current_time();
 
@@ -45,7 +45,7 @@ void listen_ack() {
         ack_error = read_ack(&ack_seq_num, &ack_neg, ack);
 
         if (!ack_error) {
-            if (ack_seq_num >= lar + 1 && ack_seq_num <= lfs) {
+            if (ack_seq_num > lar && ack_seq_num <= lfs) {
                 if (!ack_neg) {
                     window_ack_mask[ack_seq_num - (lar + 1)] = true;
                     cout << "[RECV ACK " << ack_seq_num << "]" << endl;
@@ -132,17 +132,17 @@ int main(int argc, char *argv[]) {
     while (true) {
         /* Check window ack mask, shift window if possible */
         if (window_ack_mask[0]) {
-            int shift = 0;
-            for (int i = 1; i < window_size; i++) {
-                shift += 1;
+            unsigned int shift = 1;
+            for (unsigned int i = 1; i < window_size; i++) {
                 if (!window_ack_mask[i]) break;
+                shift += 1;
             }
-            for (int i = 0; i < window_size - shift; i++) {
+            for (unsigned int i = 0; i < window_size - shift; i++) {
                 window_sent_mask[i] = window_sent_mask[i + shift];
                 window_ack_mask[i] = window_ack_mask[i + shift];
                 window_sent_time[i] = window_sent_time[i + shift];
             }
-            for (int i = window_size - shift; i < window_size; i++) {
+            for (unsigned int i = window_size - shift; i < window_size; i++) {
                 window_sent_mask[i] = false;
                 window_ack_mask[i] = false;
             }
@@ -150,15 +150,12 @@ int main(int argc, char *argv[]) {
             lfs = lar + window_size;
         }
 
-        for (int i = 0; i < window_size; i ++) {
+        for (unsigned int i = 0; i < window_size; i ++) {
             if (!window_sent_mask[i] || (!window_ack_mask[i] && elapsed_time(current_time(), window_sent_time[i]) > TIMEOUT)) {
                 strcpy(data, "hello asu lu semua lkonto");
                 data_size = (size_t)(strlen(data) + 1);
 
                 unsigned int seq_num = lar + i + 1;
-
-                if (seq_num > 100) exit(1);
-
                 frame_size = create_frame(seq_num, frame, data, data_size);
 
                 sendto(socket_fd, frame, frame_size, MSG_CONFIRM, 
@@ -169,7 +166,11 @@ int main(int argc, char *argv[]) {
                 cout << "[SENT FRAME " << seq_num << "] " << data << endl;
             }
         }
+
+        if (lar >= 999) break;
     }
+    
+    cout << "harusnya kelar gan" << endl;
 
     recv_thread.join();
     delete [] window_ack_mask;

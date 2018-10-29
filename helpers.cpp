@@ -22,7 +22,7 @@ size_t create_frame(unsigned int seq_num, char *frame, char *data, size_t data_s
     memcpy(frame + 1, &net_seq_num, 4);
     memcpy(frame + 5, &net_data_size, 4);
     memcpy(frame + 9, data, data_size);
-    frame[data_size + 9] = checksum(frame, data_size + (size_t)9);
+    frame[data_size + 9] = checksum(frame, data_size + (size_t) 9);
 
     return data_size + (size_t)10;
 }
@@ -45,11 +45,11 @@ bool read_frame(unsigned int *seq_num, char *data, size_t *data_size, char *fram
 
     memcpy(data, frame + 9, *data_size);
 
-    return frame[*data_size + 9] != checksum(frame, *data_size + (size_t)9);
+    return frame[*data_size + 9] != checksum(frame, *data_size + (size_t) 9);
 }
 
-bool read_ack(unsigned int *seq_num, bool *error, char *ack) {
-    *error = ack[0] == 0x0 ? true : false;
+bool read_ack(unsigned int *seq_num, bool *neg, char *ack) {
+    *neg = ack[0] == 0x0 ? true : false;
 
     uint32_t net_seq_num;
     memcpy(&net_seq_num, ack + 1, 4);

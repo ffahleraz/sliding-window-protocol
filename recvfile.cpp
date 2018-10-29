@@ -54,7 +54,7 @@ int main(int argc, char * argv[]) {
     bool frame_error;
     unsigned int recv_seq_num;
     
-    unsigned int lfr, laf;
+    ssize_t lfr, laf;
     bool window_recv_mask[window_size];
     for (int i = 0; i < window_size; i++) {
         window_recv_mask[i] = false;
@@ -75,15 +75,15 @@ int main(int argc, char * argv[]) {
             
             if (!frame_error) {
                 if (recv_seq_num == lfr + 1) {
-                    int shift = 0;
-                    for (int i = 1; i < window_size; i++) {
-                        shift += 1;
+                    unsigned int shift = 1;
+                    for (unsigned int i = 1; i < window_size; i++) {
                         if (!window_recv_mask[i]) break;
+                        shift += 1;
                     }
-                    for (int i = 0; i < window_size - shift; i++) {
+                    for (unsigned int i = 0; i < window_size - shift; i++) {
                         window_recv_mask[i] = window_recv_mask[i + shift];
                     }
-                    for (int i = window_size - shift; i < window_size; i++) {
+                    for (unsigned int i = window_size - shift; i < window_size; i++) {
                         window_recv_mask[i] = false;
                     }
                     lfr += shift;
