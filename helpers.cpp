@@ -15,8 +15,8 @@ char checksum(char *frame, size_t count) {
     return (sum & 0xFFFF);
 }
 
-size_t create_frame(unsigned int seq_num, char *frame, char *data, size_t data_size) {
-    frame[0] = 0x1;
+size_t create_frame(unsigned int seq_num, char *frame, char *data, size_t data_size, bool eot) {
+    frame[0] = eot ? 0x0 : 0x1;
     uint32_t net_seq_num = htonl(seq_num);
     uint32_t net_data_size = htonl(data_size);
     memcpy(frame + 1, &net_seq_num, 4);
@@ -34,7 +34,9 @@ void create_ack(unsigned int seq_num, char *ack, bool error) {
     ack[5] = checksum(ack, ACK_SIZE - (size_t) 1);
 }
 
-bool read_frame(unsigned int *seq_num, char *data, size_t *data_size, char *frame) {
+bool read_frame(unsigned int *seq_num, char *data, size_t *data_size, bool *eot, char *frame) {
+    *eot = frame[0] == 0x0 ? true : false;
+
     uint32_t net_seq_num;
     memcpy(&net_seq_num, frame + 1, 4);
     *seq_num = ntohl(net_seq_num);
