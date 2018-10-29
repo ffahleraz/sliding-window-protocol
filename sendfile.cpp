@@ -25,7 +25,10 @@ struct sockaddr_in server_addr, client_addr;
 
 unsigned int window_size;
 bool *window_ack_mask;
+time_stamp *window_sent_time;
 unsigned int lar, lfs;
+
+time_stamp TMIN = current_time();
 
 void listen_ack() {
     char ack[ACK_SIZE];
@@ -41,11 +44,23 @@ void listen_ack() {
                 &server_addr_size);
         ack_error = read_ack(&ack_seq_num, &ack_conf, ack);
 
-        if (ack_seq_num >= lar + 1 && ack_seq_num <= lfs) {
-            window_ack_mask[ack_seq_num - (lar + 1)] = true;
+        if (!ack_error) {
+            if (ack_seq_num >= lar + 1 && ack_seq_num <= lfs) {
+                if (ack_conf) {
+                    window_ack_mask[ack_seq_num - (lar + 1)] = true;
+                    cout << "[RECV ACK " << ack_seq_num << "]" << endl;
+                } else {
+                    window_sent_time[ack_seq_num - (lar + 1)] = TMIN;
+                    cout << "[RECV NAK " << ack_seq_num << "]" << endl;
+                }
+            } else {
+                cout << "[IGN ACK " << ack_seq_num << "]" << endl;
+            }
+        } else {
+            cout << "[ERR ACK " << ack_seq_num << "]" << endl;
         }
 
-        cout << "[RECV ACK " << ack_seq_num << "]" << endl;
+
     }
 }
 
@@ -100,9 +115,9 @@ int main(int argc, char *argv[]) {
     size_t data_size;
     
     /* Initialize sliding window variables */
-    time_stamp window_sent_time[window_size];
-    bool window_sent_mask[window_size];
+    window_sent_time = new time_stamp[window_size];
     window_ack_mask = new bool[window_size];
+    bool window_sent_mask[window_size];
     
     for (int i = 0; i < window_size; i++) {
         window_sent_mask[i] = false;

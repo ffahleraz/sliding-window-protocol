@@ -73,27 +73,31 @@ int main(int argc, char * argv[]) {
             sendto(socket_fd, ack, ACK_SIZE, MSG_CONFIRM, 
                     (const struct sockaddr *) &client_addr, client_addr_size);
             
-            if (recv_seq_num == lfr + 1) {
-                int shift = 0;
-                for (int i = 1; i < window_size; i++) {
-                    shift += 1;
-                    if (!window_recv_mask[i]) break;
+            if (!frame_error) {
+                if (recv_seq_num == lfr + 1) {
+                    int shift = 0;
+                    for (int i = 1; i < window_size; i++) {
+                        shift += 1;
+                        if (!window_recv_mask[i]) break;
+                    }
+                    for (int i = 0; i < window_size - shift; i++) {
+                        window_recv_mask[i] = window_recv_mask[i + shift];
+                    }
+                    for (int i = window_size - shift; i < window_size; i++) {
+                        window_recv_mask[i] = false;
+                    }
+                    lfr += shift;
+                    laf = lfr + window_size;
+                } else if (recv_seq_num > lfr + 1) {
+                    window_recv_mask[recv_seq_num - (lfr + 1)] = true;
                 }
-                for (int i = 0; i < window_size - shift; i++) {
-                    window_recv_mask[i] = window_recv_mask[i + shift];
-                }
-                for (int i = window_size - shift; i < window_size; i++) {
-                    window_recv_mask[i] = false;
-                }
-                lfr += shift;
-                laf = lfr + window_size;
-            } else if (recv_seq_num > lfr + 1) {
-                window_recv_mask[recv_seq_num - (lfr + 1)] = true;
+                data[data_size] = '\0';
+                cout << "[RECV FRAME " << recv_seq_num << "] " << data << endl;
+                cout << "[SENT ACK " << recv_seq_num << "]" << endl;
+            } else {
+                cout << "[ERR FRAME " << recv_seq_num << "] " << data << endl;
+                cout << "[SENT NAK " << recv_seq_num << "]" << endl;
             }
-
-            data[data_size] = '\0';
-            cout << "[RECV FRAME " << recv_seq_num << "] " << data << endl;
-            cout << "[SENT ACK " << recv_seq_num << "]" << endl;
         } else {
             cout << "[IGN FRAME " << recv_seq_num << "] " << data << endl;
         }
