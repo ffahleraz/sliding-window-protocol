@@ -131,10 +131,12 @@ int main(int argc, char *argv[]) {
     size_t frame_size;
     size_t data_size;
 
-    while (true) {
+    bool read_done = false;
+    while (!read_done) {
 
         /* Read part of file to buffer */
         buffer_size = fread(buffer, 1, max_buffer_size, file);
+        read_done = buffer_size < max_buffer_size;
         
         /* Initialize sliding window variables */
         unsigned int seq_count = buffer_size / MAX_DATA_SIZE + ((buffer_size % MAX_DATA_SIZE == 0) ? 0 : 1);
@@ -174,33 +176,34 @@ int main(int argc, char *argv[]) {
                 seq_num = lar + i + 1;
 
                 if (seq_num < seq_count) {
+
                     if (!window_sent_mask[i] || (!window_ack_mask[i] && elapsed_time(current_time(), window_sent_time[i]) > TIMEOUT)) {
                         unsigned int buffer_shift = seq_num * MAX_DATA_SIZE;
                         data_size = (buffer_size - buffer_shift < MAX_DATA_SIZE) ? (buffer_size - buffer_shift) : MAX_DATA_SIZE;
                         memcpy(data, buffer + buffer_shift, data_size);
-                        frame_size = create_frame(seq_num, frame, data, data_size);
+                        
+                        bool eot = (seq_num == seq_count - 1) && (read_done);
+                        frame_size = create_frame(seq_num, frame, data, data_size, eot);
 
                         sendto(socket_fd, frame, frame_size, MSG_CONFIRM, 
                                 (const struct sockaddr *) &server_addr, sizeof(server_addr));
                         window_sent_mask[i] = true;
                         window_sent_time[i] = current_time();
 
-                        cout << "[SENT FRAME " << seq_num << "] " << data_size << " bytes" << endl;
+                        if (!eot) cout << "[SENT FRAME " << seq_num << "] " << data_size << " bytes" << endl;
+                        else cout << "[SENT EOT FRAME " << seq_num << "] " << data_size << " bytes" << endl;
                     }
                 }
             }
 
-            if (lar >= seq_count - 1) break;
+            if (lar == seq_count - 1) break;
         }
 
-        if (buffer_size < max_buffer_size) break;
+        if (read_done) break;
     }
-
-    cout << "harusnya kelar gan" << endl;
     
     delete [] window_ack_mask;
     delete [] window_sent_time;
-    recv_thread.join();
-
+    recv_thread.detach();
     return 0;
 }

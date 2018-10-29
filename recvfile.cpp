@@ -51,6 +51,7 @@ int main(int argc, char * argv[]) {
     size_t frame_size;
     size_t data_size;
     socklen_t client_addr_size;
+    bool eot;
     bool frame_error;
     unsigned int recv_seq_num;
     
@@ -66,7 +67,7 @@ int main(int argc, char * argv[]) {
         frame_size = recvfrom(socket_fd, (char *)frame, MAX_FRAME_SIZE, 
                 MSG_WAITALL, (struct sockaddr *) &client_addr, 
                 &client_addr_size);
-        frame_error = read_frame(&recv_seq_num, data, &data_size, frame);
+        frame_error = read_frame(&recv_seq_num, data, &data_size, &eot, frame);
 
         if (recv_seq_num <= laf) {
             create_ack(recv_seq_num, ack, frame_error);
