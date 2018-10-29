@@ -151,7 +151,8 @@ int main(int argc, char *argv[]) {
 
         lar = -1;
         lfs = lar + window_size;
-        while (true) {
+        bool send_done = false;
+        while (!send_done) {
             /* Check window ack mask, shift window if possible */
             if (window_ack_mask[0]) {
                 unsigned int shift = 1;
@@ -195,7 +196,13 @@ int main(int argc, char *argv[]) {
                 }
             }
 
-            if (lar == seq_count - 1) break;
+            if (lar >= seq_count - 1) send_done = true;
+            if (seq_count < window_size) {
+                send_done = true;
+                for (unsigned int i = 0; i < seq_count; i++) {
+                    send_done &= window_ack_mask[i];
+                }
+            }
         }
 
         if (read_done) break;
