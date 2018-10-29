@@ -1,4 +1,7 @@
 .vscode
 *.txt
+*.jpg
+*.jpeg
+*.png
 recvfile
 sendfile

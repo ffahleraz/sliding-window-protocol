@@ -18,9 +18,9 @@ int main(int argc, char * argv[]) {
 
     if (argc == 5) {
         fname = argv[1];
-        window_size = atoi(argv[1]);
-        max_buffer_size = atoi(argv[2]);
-        port = atoi(argv[3]);
+        window_size = (size_t) atoi(argv[2]) * (size_t) 1024;
+        max_buffer_size = (size_t) atoi(argv[3]) * (size_t) 1024;
+        port = atoi(argv[4]);
     } else {
         cerr << "usage: ./recvfile <filename> <window_size> <buffer_size> <port>" << endl;
         return 1;
@@ -53,66 +53,88 @@ int main(int argc, char * argv[]) {
     char ack[ACK_SIZE];
     size_t frame_size;
     size_t data_size;
-    size_t buffer_size;
     ssize_t lfr, laf;
     socklen_t client_addr_size;
+    
     char *buffer;
+    size_t buffer_size;
     bool eot;
     bool frame_error;
     unsigned int recv_seq_num;
 
-    buffer = new char[max_buffer_size];
-
-    while (true) {
-        unsigned int seq_count = buffer_size / MAX_DATA_SIZE + ((buffer_size % MAX_DATA_SIZE == 0) ? 0 : 1);
-        unsigned int seq_num;
-
+    bool recv_done = false;
+    while (!recv_done) {
+        buffer = new char[max_buffer_size];
+        buffer_size = max_buffer_size;
+    
+        unsigned int recv_seq_count = max_buffer_size / MAX_DATA_SIZE;
         bool window_recv_mask[window_size];
         for (int i = 0; i < window_size; i++) {
             window_recv_mask[i] = false;
         }
-    }
-    
-    lfr = -1;
-    laf = lfr + window_size;
-    while (true) {
-        frame_size = recvfrom(socket_fd, (char *)frame, MAX_FRAME_SIZE, 
-                MSG_WAITALL, (struct sockaddr *) &client_addr, 
-                &client_addr_size);
-        frame_error = read_frame(&recv_seq_num, data, &data_size, &eot, frame);
 
-        if (recv_seq_num <= laf) {
-            create_ack(recv_seq_num, ack, frame_error);
-            sendto(socket_fd, ack, ACK_SIZE, MSG_CONFIRM, 
-                    (const struct sockaddr *) &client_addr, client_addr_size);
-            
-            if (!frame_error) {
-                if (recv_seq_num == lfr + 1) {
-                    unsigned int shift = 1;
-                    for (unsigned int i = 1; i < window_size; i++) {
-                        if (!window_recv_mask[i]) break;
-                        shift += 1;
+        lfr = -1;
+        laf = lfr + window_size;
+        
+        while (true) {
+            frame_size = recvfrom(socket_fd, (char *)frame, MAX_FRAME_SIZE, 
+                    MSG_WAITALL, (struct sockaddr *) &client_addr, 
+                    &client_addr_size);
+            frame_error = read_frame(&recv_seq_num, data, &data_size, &eot, frame);
+
+            if (recv_seq_num <= laf) {
+                create_ack(recv_seq_num, ack, frame_error);
+                sendto(socket_fd, ack, ACK_SIZE, MSG_CONFIRM, 
+                        (const struct sockaddr *) &client_addr, client_addr_size);
+                
+                if (!frame_error) {
+                    if (recv_seq_num == lfr + 1) {
+                        unsigned int shift = 1;
+                        for (unsigned int i = 1; i < window_size; i++) {
+                            if (!window_recv_mask[i]) break;
+                            shift += 1;
+                        }
+                        for (unsigned int i = 0; i < window_size - shift; i++) {
+                            window_recv_mask[i] = window_recv_mask[i + shift];
+                        }
+                        for (unsigned int i = window_size - shift; i < window_size; i++) {
+                            window_recv_mask[i] = false;
+                        }
+                        lfr += shift;
+                        laf = lfr + window_size;
+                    } else if (recv_seq_num > lfr + 1) {
+                        window_recv_mask[recv_seq_num - (lfr + 1)] = true;
                     }
-                    for (unsigned int i = 0; i < window_size - shift; i++) {
-                        window_recv_mask[i] = window_recv_mask[i + shift];
+
+                    size_t buffer_shift = recv_seq_num * MAX_DATA_SIZE;
+                    if (!window_recv_mask[recv_seq_num - (lfr + 1)]) {
+                        memcpy(buffer + buffer_shift, data, data_size);
                     }
-                    for (unsigned int i = window_size - shift; i < window_size; i++) {
-                        window_recv_mask[i] = false;
+                    if (eot) {
+                        buffer_size = buffer_shift + data_size;
+                        recv_seq_count = recv_seq_num + 1;
+                        recv_done = true;
+                        cout << "[RECV FRAME EOT " << recv_seq_num << "] " << data_size << " bytes" << endl;
+                        cout << "[SENT ACK EOT " << recv_seq_num << "]" << endl;
+                    } else {
+                        cout << "[RECV FRAME " << recv_seq_num << "] " << data_size << " bytes" << endl;
+                        cout << "[SENT ACK " << recv_seq_num << "]" << endl;
                     }
-                    lfr += shift;
-                    laf = lfr + window_size;
-                } else if (recv_seq_num > lfr + 1) {
-                    window_recv_mask[recv_seq_num - (lfr + 1)] = true;
+                } else {
+                    cout << "[ERR FRAME " << recv_seq_num << "] " << data_size << " bytes" << endl;
+                    cout << "[SENT NAK " << recv_seq_num << "]" << endl;
                 }
-                data[data_size] = '\0';
-                cout << "[RECV FRAME " << recv_seq_num << "] " << data_size << " bytes" << endl;
-                cout << "[SENT ACK " << recv_seq_num << "]" << endl;
             } else {
-                cout << "[ERR FRAME " << recv_seq_num << "] " << data_size << " bytes" << endl;
-                cout << "[SENT NAK " << recv_seq_num << "]" << endl;
+                cout << "[IGN FRAME " << recv_seq_num << "] " << data_size << " bytes" << endl;
             }
-        } else {
-            cout << "[IGN FRAME " << recv_seq_num << "] " << data_size << " bytes" << endl;
+
+            if (lfr == recv_seq_count - 1) {
+                break;
+            }
         }
+
+        fwrite(buffer, 1, buffer_size, file);
     }
+
+    fclose(file);
 }
