@@ -176,7 +176,6 @@ int main(int argc, char *argv[]) {
                 seq_num = lar + i + 1;
 
                 if (seq_num < seq_count) {
-
                     if (!window_sent_mask[i] || (!window_ack_mask[i] && elapsed_time(current_time(), window_sent_time[i]) > TIMEOUT)) {
                         unsigned int buffer_shift = seq_num * MAX_DATA_SIZE;
                         data_size = (buffer_size - buffer_shift < MAX_DATA_SIZE) ? (buffer_size - buffer_shift) : MAX_DATA_SIZE;
@@ -202,6 +201,7 @@ int main(int argc, char *argv[]) {
         if (read_done) break;
     }
     
+    fclose(file);
     delete [] window_ack_mask;
     delete [] window_sent_time;
     recv_thread.detach();
