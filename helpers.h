@@ -12,6 +12,7 @@
 
 typedef unsigned char byte;
 
+char checksum(char *frame, size_t count);
 size_t create_frame(unsigned int seq_num, char *frame, char *data, size_t data_size);
 void create_ack(unsigned int seq_num, char *ack, bool error);
 bool read_frame(unsigned int *seq_num, char *data, size_t *data_size, char *frame);

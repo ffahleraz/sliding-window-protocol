@@ -35,18 +35,18 @@ void listen_ack() {
     size_t ack_size;
     unsigned int ack_seq_num;
     bool ack_error;
-    bool ack_conf;
+    bool ack_neg;
 
     while (true) {
         socklen_t server_addr_size;
         ack_size = recvfrom(socket_fd, (char *)ack, ACK_SIZE, 
                 MSG_WAITALL, (struct sockaddr *) &server_addr, 
                 &server_addr_size);
-        ack_error = read_ack(&ack_seq_num, &ack_conf, ack);
+        ack_error = read_ack(&ack_seq_num, &ack_neg, ack);
 
         if (!ack_error) {
             if (ack_seq_num >= lar + 1 && ack_seq_num <= lfs) {
-                if (ack_conf) {
+                if (!ack_neg) {
                     window_ack_mask[ack_seq_num - (lar + 1)] = true;
                     cout << "[RECV ACK " << ack_seq_num << "]" << endl;
                 } else {
@@ -59,8 +59,6 @@ void listen_ack() {
         } else {
             cout << "[ERR ACK " << ack_seq_num << "]" << endl;
         }
-
-
     }
 }
 
@@ -155,7 +153,7 @@ int main(int argc, char *argv[]) {
         for (int i = 0; i < window_size; i ++) {
             if (!window_sent_mask[i] || (!window_ack_mask[i] && elapsed_time(current_time(), window_sent_time[i]) > TIMEOUT)) {
                 strcpy(data, "hello asu lu semua lkonto");
-                data_size = (size_t)strlen(data);
+                data_size = (size_t)(strlen(data) + 1);
 
                 unsigned int seq_num = lar + i + 1;
 
@@ -175,4 +173,5 @@ int main(int argc, char *argv[]) {
 
     recv_thread.join();
     delete [] window_ack_mask;
+    delete [] window_sent_time;
 }

@@ -1,7 +1,10 @@
 #include "helpers.h"
 
-unsigned int checksum(char *frame, size_t count) {
-    unsigned long sum = 0;
+#include <iostream>
+using namespace std;
+
+char checksum(char *frame, size_t count) {
+    u_long sum = 0;
     while (count--) {
         sum += *frame++;
         if (sum & 0xFFFF0000) {
@@ -9,7 +12,7 @@ unsigned int checksum(char *frame, size_t count) {
             sum++; 
         }
     }
-    return (sum & 0xFFFF); 
+    return (sum & 0xFFFF);
 }
 
 size_t create_frame(unsigned int seq_num, char *frame, char *data, size_t data_size) {
@@ -19,7 +22,7 @@ size_t create_frame(unsigned int seq_num, char *frame, char *data, size_t data_s
     memcpy(frame + 1, &net_seq_num, 4);
     memcpy(frame + 5, &net_data_size, 4);
     memcpy(frame + 9, data, data_size);
-    frame[9 + data_size] = checksum(frame, data_size + (size_t) 9);
+    frame[data_size + 9] = checksum(frame, data_size + (size_t)9);
 
     return data_size + (size_t)10;
 }
@@ -42,7 +45,7 @@ bool read_frame(unsigned int *seq_num, char *data, size_t *data_size, char *fram
 
     memcpy(data, frame + 9, *data_size);
 
-    return frame[9 + *data_size] != checksum(frame, *data_size + (size_t) 9);
+    return frame[*data_size + 9] != checksum(frame, *data_size + (size_t)9);
 }
 
 bool read_ack(unsigned int *seq_num, bool *error, char *ack) {
