@@ -12,15 +12,17 @@ int main(int argc, char * argv[]) {
     int socket_fd;
     unsigned int port;
     unsigned int window_size;
-    ssize_t buff_size;
+    ssize_t max_buffer_size;
     struct sockaddr_in server_addr, client_addr;
+    char *fname;
 
-    if (argc == 4) {
+    if (argc == 5) {
+        fname = argv[1];
         window_size = atoi(argv[1]);
-        buff_size = atoi(argv[2]);
+        max_buffer_size = atoi(argv[2]);
         port = atoi(argv[3]);
     } else {
-        cerr << "usage: ./recvfile <window_size> <buffer_size> <port>" << endl;
+        cerr << "usage: ./recvfile <filename> <window_size> <buffer_size> <port>" << endl;
         return 1;
     }
 
@@ -45,19 +47,29 @@ int main(int argc, char * argv[]) {
         return 1;
     }
 
+    FILE *file = fopen(fname, "wb");
     char frame[MAX_FRAME_SIZE];
     char data[MAX_DATA_SIZE];
     char ack[ACK_SIZE];
     size_t frame_size;
     size_t data_size;
+    size_t buffer_size;
+    ssize_t lfr, laf;
     socklen_t client_addr_size;
+    char *buffer;
     bool frame_error;
     unsigned int recv_seq_num;
-    
-    ssize_t lfr, laf;
-    bool window_recv_mask[window_size];
-    for (int i = 0; i < window_size; i++) {
-        window_recv_mask[i] = false;
+
+    buffer = new char[max_buffer_size];
+
+    while (true) {
+        unsigned int seq_count = buffer_size / MAX_DATA_SIZE + ((buffer_size % MAX_DATA_SIZE == 0) ? 0 : 1);
+        unsigned int seq_num;
+
+        bool window_recv_mask[window_size];
+        for (int i = 0; i < window_size; i++) {
+            window_recv_mask[i] = false;
+        }
     }
     
     lfr = -1;
