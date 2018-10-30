@@ -9,13 +9,17 @@
 ## Table Of Contents
 - [Introduction](#introduction)
 - [Installation](#Installation)
+- [How Sliding Windows Protocol Works](#how-sliding-windows-protocol-works)
 - [Run Simulation](#run-simulation)
+- [Documentation](#documentation)
 - [Authors](#authors)
 - [Words from Authors](#words-from-authors)
 - [References](#references)
 
 ## Introduction
 This is an implementation of a sliding window protocol using **C++**. It is open-source and everyone can contribute to this project by creating pull request.
+
+## How Sliding Windows Protocol Works
 
 ## Installation
 You need to install **g++** and run it on **Ubuntu** Operating System. List of build commands:
@@ -37,7 +41,7 @@ $ ./recvfile <filename> <window_size> <buffer_size> <port>
 ```
 $ ./sendfile <filename> <window_size> <buffer_size> <ip> <port>
 ```
-
+## Documentation
 ## Authors
 ## Words from Authors
 ## References
