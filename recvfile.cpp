@@ -1,4 +1,5 @@
-#include<iostream>
+#include <iostream>
+#include <thread>
 
 #include <stdio.h>
 #include <sys/socket.h>
@@ -8,12 +9,37 @@
 
 using namespace std;
 
+int socket_fd;
+struct sockaddr_in server_addr, client_addr;
+
+void send_ack() {
+    char frame[MAX_FRAME_SIZE];
+    char data[MAX_DATA_SIZE];
+    char ack[ACK_SIZE];
+    size_t frame_size;
+    size_t data_size;
+    socklen_t client_addr_size;
+    
+    unsigned int recv_seq_num;
+    bool frame_error;
+    bool eot;
+
+    while (true) {
+        frame_size = recvfrom(socket_fd, (char *)frame, MAX_FRAME_SIZE, 
+                MSG_WAITALL, (struct sockaddr *) &client_addr, 
+                &client_addr_size);
+        frame_error = read_frame(&recv_seq_num, data, &data_size, &eot, frame);
+
+        create_ack(recv_seq_num, ack, frame_error);
+        sendto(socket_fd, ack, ACK_SIZE, MSG_CONFIRM, 
+                (const struct sockaddr *) &client_addr, client_addr_size);
+    }
+}
+
 int main(int argc, char * argv[]) {
-    int socket_fd;
     unsigned int port;
     unsigned int window_size;
     ssize_t max_buffer_size;
-    struct sockaddr_in server_addr, client_addr;
     char *fname;
 
     if (argc == 5) {
@@ -63,6 +89,7 @@ int main(int argc, char * argv[]) {
     unsigned int recv_seq_num;
 
     bool recv_done = false;
+    unsigned int frame_num = 0;
     while (!recv_done) {
         buffer = new char[max_buffer_size];
         buffer_size = max_buffer_size;
@@ -82,13 +109,17 @@ int main(int argc, char * argv[]) {
                     &client_addr_size);
             frame_error = read_frame(&recv_seq_num, data, &data_size, &eot, frame);
 
+            create_ack(recv_seq_num, ack, frame_error);
+            sendto(socket_fd, ack, ACK_SIZE, MSG_CONFIRM, 
+                    (const struct sockaddr *) &client_addr, client_addr_size);
+
             if (recv_seq_num <= laf) {
-                create_ack(recv_seq_num, ack, frame_error);
-                sendto(socket_fd, ack, ACK_SIZE, MSG_CONFIRM, 
-                        (const struct sockaddr *) &client_addr, client_addr_size);
-                
                 if (!frame_error) {
+                    size_t buffer_shift = recv_seq_num * MAX_DATA_SIZE;
+
                     if (recv_seq_num == lfr + 1) {
+                        memcpy(buffer + buffer_shift, data, data_size);
+
                         unsigned int shift = 1;
                         for (unsigned int i = 1; i < window_size; i++) {
                             if (!window_recv_mask[i]) break;
@@ -103,29 +134,29 @@ int main(int argc, char * argv[]) {
                         lfr += shift;
                         laf = lfr + window_size;
                     } else if (recv_seq_num > lfr + 1) {
-                        window_recv_mask[recv_seq_num - (lfr + 1)] = true;
+                        if (!window_recv_mask[recv_seq_num - (lfr + 1)]) {
+                            memcpy(buffer + buffer_shift, data, data_size);
+                            window_recv_mask[recv_seq_num - (lfr + 1)] = true;
+                        }
                     }
 
-                    size_t buffer_shift = recv_seq_num * MAX_DATA_SIZE;
-                    if (!window_recv_mask[recv_seq_num - (lfr + 1)]) {
-                        memcpy(buffer + buffer_shift, data, data_size);
-                    }
                     if (eot) {
                         buffer_size = buffer_shift + data_size;
                         recv_seq_count = recv_seq_num + 1;
                         recv_done = true;
-                        cout << "[RECV FRAME EOT " << recv_seq_num << "] " << data_size << " bytes" << endl;
-                        cout << "[SENT ACK EOT " << recv_seq_num << "]" << endl;
+                        cout << "[" << frame_num << " RECV FRAME EOT " << recv_seq_num << "] " << data_size << " bytes" << endl;
+                        cout << "[" << frame_num << " SENT ACK EOT " << recv_seq_num << "]" << endl;
                     } else {
-                        cout << "[RECV FRAME " << recv_seq_num << "] " << data_size << " bytes" << endl;
-                        cout << "[SENT ACK " << recv_seq_num << "]" << endl;
+                        cout << "[" << frame_num << " RECV FRAME " << recv_seq_num << "] " << data_size << " bytes" << endl;
+                        cout << "[" << frame_num << " SENT ACK " << recv_seq_num << "]" << endl;
                     }
                 } else {
-                    cout << "[ERR FRAME " << recv_seq_num << "] " << data_size << " bytes" << endl;
-                    cout << "[SENT NAK " << recv_seq_num << "]" << endl;
+                    cout << "[" << frame_num << " ERR FRAME " << recv_seq_num << "] " << data_size << " bytes" << endl;
+                    cout << "[" << frame_num << " SENT NAK " << recv_seq_num << "]" << endl;
                 }
             } else {
-                cout << "[IGN FRAME " << recv_seq_num << "] " << data_size << " bytes" << endl;
+                cout << "[" << frame_num << " IGN FRAME " << recv_seq_num << "] " << data_size << " bytes" << endl;
+
             }
 
             if (lfr == recv_seq_count - 1) {
@@ -133,8 +164,18 @@ int main(int argc, char * argv[]) {
             }
         }
 
+        frame_num += 1;
         fwrite(buffer, 1, buffer_size, file);
+        memset(buffer, 0, buffer_size);
     }
 
     fclose(file);
+
+    /* Start thread to keep sending ack to sender for 4 seconds */
+    cout << "[SENDING REQUESTED ACK FOR 4 SECONDS...]" << endl;
+    thread ack_thread(send_ack);
+    sleep_for(4000);
+    ack_thread.detach();
+
+    return 0;
 }

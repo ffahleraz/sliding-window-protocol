@@ -1,6 +1,5 @@
 #include <iostream>
 #include <thread>
-#include <chrono>
 
 #include <stdio.h>
 #include <unistd.h>
@@ -9,11 +8,7 @@
 
 #include "helpers.h"
 
-#define TIMEOUT 20
-
-#define current_time chrono::high_resolution_clock::now
-#define time_stamp chrono::high_resolution_clock::time_point
-#define elapsed_time(end, start) chrono::duration_cast<chrono::milliseconds>(end - start).count()
+#define TIMEOUT 30
 
 using namespace std;
 
@@ -118,8 +113,7 @@ int main(int argc, char *argv[]) {
 
     /* Open file to send */
     FILE *file = fopen(fname, "rb");
-    char *buffer;
-    buffer = new char[max_buffer_size];
+    char buffer[max_buffer_size];
     size_t buffer_size;
 
     /* Start thread to listen for ack */
@@ -132,6 +126,7 @@ int main(int argc, char *argv[]) {
     size_t data_size;
 
     bool read_done = false;
+    unsigned int frame_num = 0;
     while (!read_done) {
 
         /* Read part of file to buffer */
@@ -190,21 +185,16 @@ int main(int argc, char *argv[]) {
                         window_sent_mask[i] = true;
                         window_sent_time[i] = current_time();
 
-                        if (!eot) cout << "[SENT FRAME " << seq_num << "] " << data_size << " bytes" << endl;
-                        else cout << "[SENT EOT FRAME " << seq_num << "] " << data_size << " bytes" << endl;
+                        if (!eot) cout << "[" << frame_num << " SENT FRAME " << seq_num << "] " << data_size << " bytes" << endl;
+                        else cout << "[" << frame_num << " SENT EOT FRAME " << seq_num << "] " << data_size << " bytes" << endl;
                     }
                 }
             }
 
             if (lar >= seq_count - 1) send_done = true;
-            if (seq_count < window_size) {
-                send_done = true;
-                for (unsigned int i = 0; i < seq_count; i++) {
-                    send_done &= window_ack_mask[i];
-                }
-            }
         }
 
+        frame_num += 1;
         if (read_done) break;
     }
     
