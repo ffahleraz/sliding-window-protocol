@@ -43,5 +43,16 @@ $ ./sendfile <filename> <window_size> <buffer_size> <ip> <port>
 ```
 ## Documentation
 ## Authors
+1. Faza Fahleraz https://github.com/ffahleraz
+2. Nicholas Rianto Putra https://github.com/nicholaz99
+3. Abram Perdanaputra https://github.com/abrampers
+
 ## Words from Authors
+Thanks to Mr. Achmad Imam Kistijantoro ST,M.Sc.,Ph.D. for his amazing project about *Lossles Data Transfer*
+> “Computer network system analysis is like child-rearing; you can do grievous damage, but you cannot ensure success.”  - DJ Zali
+
 ## References
+* [Computer Networks: A Systems Approach (The Morgan Kaufmann Series in Networking) 5th Edition](https://www.amazon.com/Computer-Networks-Fifth-Approach-Networking/dp/0123850592)
+* [CS50](https://cs50.harvard.edu)
+* [CPlusPlus](http://www.cplusplus.com)
+* [x86 Assembly Language Reference Manual](https://docs.oracle.com/cd/E19253-01/817-5477/817-5477.pdf)
