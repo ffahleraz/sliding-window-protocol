@@ -16,11 +16,11 @@ void send_ack() {
     char frame[MAX_FRAME_SIZE];
     char data[MAX_DATA_SIZE];
     char ack[ACK_SIZE];
-    size_t frame_size;
-    size_t data_size;
+    int frame_size;
+    int data_size;
     socklen_t client_addr_size;
     
-    unsigned int recv_seq_num;
+    int recv_seq_num;
     bool frame_error;
     bool eot;
 
@@ -37,15 +37,15 @@ void send_ack() {
 }
 
 int main(int argc, char * argv[]) {
-    unsigned int port;
-    unsigned int window_size;
-    ssize_t max_buffer_size;
+    int port;
+    int window_len;
+    int max_buffer_size;
     char *fname;
 
     if (argc == 5) {
         fname = argv[1];
-        window_size = (size_t) atoi(argv[2]) * (size_t) 1024;
-        max_buffer_size = (size_t) atoi(argv[3]) * (size_t) 1024;
+        window_len = (int) atoi(argv[2]);
+        max_buffer_size = MAX_DATA_SIZE * (int) atoi(argv[3]);
         port = atoi(argv[4]);
     } else {
         cerr << "usage: ./recvfile <filename> <window_size> <buffer_size> <port>" << endl;
@@ -77,37 +77,44 @@ int main(int argc, char * argv[]) {
     char frame[MAX_FRAME_SIZE];
     char data[MAX_DATA_SIZE];
     char ack[ACK_SIZE];
-    size_t frame_size;
-    size_t data_size;
-    ssize_t lfr, laf;
+    int frame_size;
+    int data_size;
+    int lfr, laf;
     socklen_t client_addr_size;
     
     char buffer[max_buffer_size];
-    size_t buffer_size;
+    int buffer_size;
     bool eot;
     bool frame_error;
-    unsigned int recv_seq_num;
+    int recv_seq_num;
 
     bool recv_done = false;
-    unsigned int buffer_num = 0;
+    int buffer_num = 0;
     while (!recv_done) {
         buffer_size = max_buffer_size;
         memset(buffer, 0, buffer_size);
     
-        unsigned int recv_seq_count = max_buffer_size / MAX_DATA_SIZE;
-        bool window_recv_mask[window_size];
-        for (int i = 0; i < window_size; i++) {
+        int recv_seq_count = (int) max_buffer_size / MAX_DATA_SIZE;
+        bool window_recv_mask[window_len];
+        for (int i = 0; i < window_len; i++) {
             window_recv_mask[i] = false;
         }
 
-        lfr = -1;
-        laf = lfr + window_size;
+        lfr = 0;
+        laf = lfr + window_len - 1;
         
         while (true) {
-            frame_size = recvfrom(socket_fd, (char *)frame, MAX_FRAME_SIZE, 
+            frame_size = recvfrom(socket_fd, (char *) frame, MAX_FRAME_SIZE, 
                     MSG_WAITALL, (struct sockaddr *) &client_addr, 
                     &client_addr_size);
             frame_error = read_frame(&recv_seq_num, data, &data_size, &eot, frame);
+
+            // cout << buffer_num << " " << recv_seq_num << " " << (unsigned short) checksum(data, data_size);
+            // if (recv_seq_num <= laf) {
+            //     cout << " WRITE " << laf << endl;
+            // } else {
+            //     cout << " NOWRITE " << laf << endl;
+            // }
 
             create_ack(recv_seq_num, ack, frame_error);
             sendto(socket_fd, ack, ACK_SIZE, MSG_CONFIRM, 
@@ -115,28 +122,28 @@ int main(int argc, char * argv[]) {
 
             if (recv_seq_num <= laf) {
                 if (!frame_error) {
-                    size_t buffer_shift = recv_seq_num * MAX_DATA_SIZE;
+                    int buffer_shift = recv_seq_num * MAX_DATA_SIZE;
 
-                    if (recv_seq_num == lfr + 1) {
+                    if (recv_seq_num == lfr) {
                         memcpy(buffer + buffer_shift, data, data_size);
 
-                        unsigned int shift = 1;
-                        for (unsigned int i = 1; i < window_size; i++) {
+                        int shift = 1;
+                        for (int i = 1; i < window_len; i++) {
                             if (!window_recv_mask[i]) break;
                             shift += 1;
                         }
-                        for (unsigned int i = 0; i < window_size - shift; i++) {
+                        for (int i = 0; i < window_len - shift; i++) {
                             window_recv_mask[i] = window_recv_mask[i + shift];
                         }
-                        for (unsigned int i = window_size - shift; i < window_size; i++) {
+                        for (int i = window_len - shift; i < window_len; i++) {
                             window_recv_mask[i] = false;
                         }
                         lfr += shift;
-                        laf = lfr + window_size;
-                    } else if (recv_seq_num > lfr + 1) {
-                        if (!window_recv_mask[recv_seq_num - (lfr + 1)]) {
+                        laf = lfr + window_len - 1;
+                    } else if (recv_seq_num > lfr) {
+                        if (!window_recv_mask[recv_seq_num - lfr]) {
                             memcpy(buffer + buffer_shift, data, data_size);
-                            window_recv_mask[recv_seq_num - (lfr + 1)] = true;
+                            window_recv_mask[recv_seq_num - lfr] = true;
                         }
                     }
 
@@ -159,18 +166,18 @@ int main(int argc, char * argv[]) {
                 // cout << "[" << buffer_num - 1 << " SENT ACK " << recv_seq_num << "]" << endl;
             }
 
-            if (lfr >= recv_seq_count - 1) break;
+            if (lfr >= recv_seq_count) break;
         }
 
         fwrite(buffer, 1, buffer_size, file);
-        cout << "[Current buffer: " << buffer_num << "]" << endl;
+        // cout << "[Current buffer: " << buffer_num << "]" << endl;
         buffer_num += 1;
     }
 
     fclose(file);
 
     /* Start thread to keep sending requested ack to sender for 3 seconds */
-    cout << "[STANDBY TO SEND REQUESTED ACK FOR 3 SECONDS...]" << endl;
+    cout << "[STANDBY TO SEND ACK FOR 3 SECONDS...]" << endl;
     thread stdby_thread(send_ack);
     sleep_for(3000);
     stdby_thread.detach();
