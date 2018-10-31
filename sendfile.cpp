@@ -39,21 +39,19 @@ void listen_ack() {
         ack_error = read_ack(&ack_seq_num, &ack_neg, ack);
 
         if (!ack_error) {
+            window_info_mutex.lock();
             if (ack_seq_num > lar && ack_seq_num <= lfs) {
                 if (!ack_neg) {
-                    window_info_mutex.lock();
                     window_ack_mask[ack_seq_num - (lar + 1)] = true;
-                    window_info_mutex.unlock();
                     // cout << "[RECV ACK " << ack_seq_num << "]" << endl;
                 } else {
-                    window_info_mutex.lock();
                     window_sent_time[ack_seq_num - (lar + 1)] = TMIN;
-                    window_info_mutex.unlock();
                     // cout << "[RECV NAK " << ack_seq_num << "]" << endl;
                 }
             } else {
                 // cout << "[IGN ACK " << ack_seq_num << "]" << endl;
             }
+            window_info_mutex.unlock();
         } else {
             // cout << "[ERR ACK " << ack_seq_num << "]" << endl;
         }
@@ -137,7 +135,16 @@ int main(int argc, char *argv[]) {
 
         /* Read part of file to buffer */
         buffer_size = fread(buffer, 1, max_buffer_size, file);
-        read_done = buffer_size < max_buffer_size;
+        if (buffer_size == max_buffer_size) {
+            char temp[1];
+            size_t next_buffer_size = fread(temp, 1, 1, file);
+            if (next_buffer_size == 0) {
+                read_done = true;
+            }
+            int error = fseek(file, -1, SEEK_CUR);
+        } else if (buffer_size < max_buffer_size) {
+            read_done = true;
+        }
         
         /* Initialize sliding window variables */
         unsigned int seq_count = buffer_size / MAX_DATA_SIZE + ((buffer_size % MAX_DATA_SIZE == 0) ? 0 : 1);
@@ -155,8 +162,8 @@ int main(int argc, char *argv[]) {
         bool send_done = false;
         while (!send_done) {
             /* Check window ack mask, shift window if possible */
+            window_info_mutex.lock();
             if (window_ack_mask[0]) {
-                window_info_mutex.lock();
                 unsigned int shift = 1;
                 for (unsigned int i = 1; i < window_size; i++) {
                     if (!window_ack_mask[i]) break;
@@ -173,8 +180,8 @@ int main(int argc, char *argv[]) {
                 }
                 lar += shift;
                 lfs = lar + window_size;
-                window_info_mutex.unlock();
             }
+            window_info_mutex.unlock();
 
             for (unsigned int i = 0; i < window_size; i ++) {
                 seq_num = lar + i + 1;
