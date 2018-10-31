@@ -1,10 +1,8 @@
 # Sliding Window Protocol
 
 [![GitLab license](https://img.shields.io/github/license/Day8/re-frame.svg)](LICENSE)
-![Build Pass](https://img.shields.io/badge/Linux%2FOSX%20Build-passing-brightgreen.svg)
-![Downloads](https://img.shields.io/badge/downloads-1m-brightgreen.svg?longCache=true&style=flat)
 =====
-> A sliding window protocol is a feature of packet-based data transmission protocols. Sliding window protocols are used where reliable in-order delivery of packets is required, such as in the Data Link Layer (OSI layer 2) as well as in the Transmission Control Protocol (TCP).
+The sliding window protocol is a feature of datagram-oriented transmission protocols. Sliding window protocols are used where reliable in-order delivery of packets is required. In this case, we implemented a sliding window protocol to ensure in-order reliable transmission for UDP sockets.
 
 ## Table Of Contents
 - [Introduction](#introduction)
@@ -53,6 +51,3 @@ Thanks to Mr. Achmad Imam Kistijantoro ST,M.Sc.,Ph.D. for his amazing project ab
 
 ## References
 * [Computer Networks: A Systems Approach (The Morgan Kaufmann Series in Networking) 5th Edition](https://www.amazon.com/Computer-Networks-Fifth-Approach-Networking/dp/0123850592)
-* [CS50](https://cs50.harvard.edu)
-* [CPlusPlus](http://www.cplusplus.com)
-* [x86 Assembly Language Reference Manual](https://docs.oracle.com/cd/E19253-01/817-5477/817-5477.pdf)
