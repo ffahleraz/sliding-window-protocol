@@ -24,6 +24,7 @@ void send_ack() {
     bool frame_error;
     bool eot;
 
+    /* Listen for frames and send ack */
     while (true) {
         frame_size = recvfrom(socket_fd, (char *)frame, MAX_FRAME_SIZE, 
                 MSG_WAITALL, (struct sockaddr *) &client_addr, 
@@ -74,20 +75,21 @@ int main(int argc, char * argv[]) {
     }
 
     FILE *file = fopen(fname, "wb");
+    char buffer[max_buffer_size];
+    int buffer_size;
+
+    /* Initialize sliding window variables */
     char frame[MAX_FRAME_SIZE];
     char data[MAX_DATA_SIZE];
     char ack[ACK_SIZE];
     int frame_size;
     int data_size;
     int lfr, laf;
-    socklen_t client_addr_size;
-    
-    char buffer[max_buffer_size];
-    int buffer_size;
+    int recv_seq_num;
     bool eot;
     bool frame_error;
-    int recv_seq_num;
 
+    /* Receive frames until EOT */
     bool recv_done = false;
     int buffer_num = 0;
     while (!recv_done) {
@@ -99,22 +101,16 @@ int main(int argc, char * argv[]) {
         for (int i = 0; i < window_len; i++) {
             window_recv_mask[i] = false;
         }
-
         lfr = 0;
         laf = lfr + window_len - 1;
         
+        /* Receive current buffer with sliding window */
         while (true) {
+            socklen_t client_addr_size;
             frame_size = recvfrom(socket_fd, (char *) frame, MAX_FRAME_SIZE, 
                     MSG_WAITALL, (struct sockaddr *) &client_addr, 
                     &client_addr_size);
             frame_error = read_frame(&recv_seq_num, data, &data_size, &eot, frame);
-
-            // cout << buffer_num << " " << recv_seq_num << " " << (unsigned short) checksum(data, data_size);
-            // if (recv_seq_num <= laf) {
-            //     cout << " WRITE " << laf << endl;
-            // } else {
-            //     cout << " NOWRITE " << laf << endl;
-            // }
 
             create_ack(recv_seq_num, ack, frame_error);
             sendto(socket_fd, ack, ACK_SIZE, MSG_CONFIRM, 
@@ -147,30 +143,20 @@ int main(int argc, char * argv[]) {
                         }
                     }
 
+                    /* Set max sequence to sequence of frame with EOT */ 
                     if (eot) {
                         buffer_size = buffer_shift + data_size;
                         recv_seq_count = recv_seq_num + 1;
                         recv_done = true;
-                        // cout << "[" << buffer_num << " RECV FRAME EOT " << recv_seq_num << "] " << data_size << " bytes" << endl;
-                        // cout << "[" << buffer_num << " SENT ACK EOT " << recv_seq_num << "]" << endl;
-                    } else {
-                        // cout << "[" << buffer_num << " RECV FRAME " << recv_seq_num << "] " << data_size << " bytes" << endl;
-                        // cout << "[" << buffer_num << " SENT ACK " << recv_seq_num << "]" << endl;
                     }
-                } else {
-                    // cout << "[" << buffer_num << " ERR FRAME " << recv_seq_num << "] " << data_size << " bytes" << endl;
-                    // cout << "[" << buffer_num << " SENT NAK " << recv_seq_num << "]" << endl;
                 }
-            } else {
-                // cout << "[" << buffer_num - 1 << " RECV FRAME " << recv_seq_num << "] " << data_size << " bytes" << endl;
-                // cout << "[" << buffer_num - 1 << " SENT ACK " << recv_seq_num << "]" << endl;
             }
-
+            
+            /* Move to next buffer if all frames in current buffer has been received */
             if (lfr >= recv_seq_count) break;
         }
 
         fwrite(buffer, 1, buffer_size, file);
-        // cout << "[Current buffer: " << buffer_num << "]" << endl;
         buffer_num += 1;
     }
 

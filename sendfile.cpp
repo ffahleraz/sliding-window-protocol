@@ -31,6 +31,7 @@ void listen_ack() {
     bool ack_error;
     bool ack_neg;
 
+    /* Listen for ack from reciever */
     while (true) {
         socklen_t server_addr_size;
         ack_size = recvfrom(socket_fd, (char *)ack, ACK_SIZE, 
@@ -40,20 +41,12 @@ void listen_ack() {
 
         window_info_mutex.lock();
 
-        if (!ack_error) {
-            if (ack_seq_num > lar && ack_seq_num <= lfs) {
-                if (!ack_neg) {
-                    window_ack_mask[ack_seq_num - (lar + 1)] = true;
-                    // cout << "[RECV ACK " << ack_seq_num << "]" << endl;
-                } else {
-                    window_sent_time[ack_seq_num - (lar + 1)] = TMIN;
-                    // cout << "[RECV NAK " << ack_seq_num << "]" << endl;
-                }
+        if (!ack_error && ack_seq_num > lar && ack_seq_num <= lfs) {
+            if (!ack_neg) {
+                window_ack_mask[ack_seq_num - (lar + 1)] = true;
             } else {
-                // cout << "[IGN ACK " << ack_seq_num << "]" << endl;
+                window_sent_time[ack_seq_num - (lar + 1)] = TMIN;
             }
-        } else {
-            // cout << "[ERR ACK " << ack_seq_num << "]" << endl;
         }
 
         window_info_mutex.unlock();
@@ -125,12 +118,12 @@ int main(int argc, char *argv[]) {
     /* Start thread to listen for ack */
     thread recv_thread(listen_ack);
 
-    /* Send file */
     char frame[MAX_FRAME_SIZE];
     char data[MAX_DATA_SIZE];
     int frame_size;
     int data_size;
 
+    /* Send file */
     bool read_done = false;
     int buffer_num = 0;
     while (!read_done) {
@@ -210,10 +203,6 @@ int main(int argc, char *argv[]) {
                                 (const struct sockaddr *) &server_addr, sizeof(server_addr));
                         window_sent_mask[i] = true;
                         window_sent_time[i] = current_time();
-
-                        // cout << buffer_num << " " << seq_num << " " << (unsigned short) checksum(data, data_size) << endl;
-                        // if (!eot) cout << "[" << buffer_num << " SENT FRAME " << seq_num << "] " << data_size << " bytes" << endl;
-                        // else cout << "[" << buffer_num << " SENT EOT FRAME " << seq_num << "] " << data_size << " bytes" << endl;
                     }
 
                     window_info_mutex.unlock();
@@ -224,7 +213,6 @@ int main(int argc, char *argv[]) {
             if (lar >= seq_count - 1) send_done = true;
         }
 
-        // cout << "[Current buffer: " << buffer_num << "]" << endl;
         buffer_num += 1;
         if (read_done) break;
     }
