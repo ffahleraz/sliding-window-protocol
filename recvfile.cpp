@@ -101,8 +101,8 @@ int main(int argc, char * argv[]) {
         for (int i = 0; i < window_len; i++) {
             window_recv_mask[i] = false;
         }
-        lfr = 0;
-        laf = lfr + window_len - 1;
+        lfr = -1;
+        laf = lfr + window_len;
         
         /* Receive current buffer with sliding window */
         while (true) {
@@ -120,7 +120,7 @@ int main(int argc, char * argv[]) {
                 if (!frame_error) {
                     int buffer_shift = recv_seq_num * MAX_DATA_SIZE;
 
-                    if (recv_seq_num == lfr) {
+                    if (recv_seq_num == lfr + 1) {
                         memcpy(buffer + buffer_shift, data, data_size);
 
                         int shift = 1;
@@ -135,11 +135,11 @@ int main(int argc, char * argv[]) {
                             window_recv_mask[i] = false;
                         }
                         lfr += shift;
-                        laf = lfr + window_len - 1;
-                    } else if (recv_seq_num > lfr) {
-                        if (!window_recv_mask[recv_seq_num - lfr]) {
+                        laf = lfr + window_len;
+                    } else if (recv_seq_num > lfr + 1) {
+                        if (!window_recv_mask[recv_seq_num - (lfr + 1)]) {
                             memcpy(buffer + buffer_shift, data, data_size);
-                            window_recv_mask[recv_seq_num - lfr] = true;
+                            window_recv_mask[recv_seq_num - (lfr + 1)] = true;
                         }
                     }
 
@@ -153,7 +153,7 @@ int main(int argc, char * argv[]) {
             }
             
             /* Move to next buffer if all frames in current buffer has been received */
-            if (lfr >= recv_seq_count) break;
+            if (lfr >= recv_seq_count - 1) break;
         }
 
         fwrite(buffer, 1, buffer_size, file);
