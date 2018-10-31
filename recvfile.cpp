@@ -163,6 +163,7 @@ int main(int argc, char * argv[]) {
         }
 
         fwrite(buffer, 1, buffer_size, file);
+        cout << "[Current buffer: " << buffer_num << "]" << endl;
         buffer_num += 1;
     }
 
