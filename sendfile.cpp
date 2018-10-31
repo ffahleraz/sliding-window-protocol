@@ -147,6 +147,7 @@ int main(int argc, char *argv[]) {
         }
         
         /* Initialize sliding window variables */
+        window_info_mutex.lock();
         unsigned int seq_count = buffer_size / MAX_DATA_SIZE + ((buffer_size % MAX_DATA_SIZE == 0) ? 0 : 1);
         unsigned int seq_num;
         window_sent_time = new time_stamp[window_size];
@@ -159,6 +160,8 @@ int main(int argc, char *argv[]) {
 
         lar = -1;
         lfs = lar + window_size;
+        window_info_mutex.unlock();
+        
         bool send_done = false;
         while (!send_done) {
             /* Check window ack mask, shift window if possible */
@@ -209,6 +212,7 @@ int main(int argc, char *argv[]) {
             if (lar >= seq_count - 1) send_done = true;
         }
 
+        cout << "[Current buffer: " << buffer_num << "]" << endl;
         buffer_num += 1;
         if (read_done) break;
     }
