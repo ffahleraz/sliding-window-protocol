@@ -32,7 +32,7 @@ void send_ack() {
         frame_error = read_frame(&recv_seq_num, data, &data_size, &eot, frame);
 
         create_ack(recv_seq_num, ack, frame_error);
-        sendto(socket_fd, ack, ACK_SIZE, MSG_CONFIRM, 
+        sendto(socket_fd, ack, ACK_SIZE, 0, 
                 (const struct sockaddr *) &client_addr, client_addr_size);
     }
 }
@@ -68,7 +68,7 @@ int main(int argc, char * argv[]) {
     }
 
     /* Bind socket to server address */
-    if (bind(socket_fd, (const struct sockaddr *)&server_addr, 
+    if (::bind(socket_fd, (const struct sockaddr *)&server_addr, 
             sizeof(server_addr)) < 0) { 
         cerr << "socket binding failed" << endl;
         return 1;
@@ -113,7 +113,7 @@ int main(int argc, char * argv[]) {
             frame_error = read_frame(&recv_seq_num, data, &data_size, &eot, frame);
 
             create_ack(recv_seq_num, ack, frame_error);
-            sendto(socket_fd, ack, ACK_SIZE, MSG_CONFIRM, 
+            sendto(socket_fd, ack, ACK_SIZE, 0, 
                     (const struct sockaddr *) &client_addr, client_addr_size);
 
             if (recv_seq_num <= laf) {
@@ -156,6 +156,7 @@ int main(int argc, char * argv[]) {
             if (lfr >= recv_seq_count - 1) break;
         }
 
+        cout << "\r[RECEIVED " << buffer_num * max_buffer_size + buffer_size << " BYTES]" << endl;
         fwrite(buffer, 1, buffer_size, file);
         buffer_num += 1;
     }

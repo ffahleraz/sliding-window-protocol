@@ -3,5 +3,6 @@
 *.jpg
 *.jpeg
 *.png
+*.mp4
 recvfile
 sendfile

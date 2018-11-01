@@ -99,7 +99,7 @@ int main(int argc, char *argv[]) {
     }
 
     /* Bind socket to client address */
-    if (bind(socket_fd, (const struct sockaddr *)&client_addr, 
+    if (::bind(socket_fd, (const struct sockaddr *)&client_addr, 
             sizeof(client_addr)) < 0) { 
         cerr << "socket binding failed" << endl;
         return 1;
@@ -199,7 +199,7 @@ int main(int argc, char *argv[]) {
                         bool eot = (seq_num == seq_count - 1) && (read_done);
                         frame_size = create_frame(seq_num, frame, data, data_size, eot);
 
-                        sendto(socket_fd, frame, frame_size, MSG_CONFIRM, 
+                        sendto(socket_fd, frame, frame_size, 0, 
                                 (const struct sockaddr *) &server_addr, sizeof(server_addr));
                         window_sent_mask[i] = true;
                         window_sent_time[i] = current_time();
@@ -213,6 +213,7 @@ int main(int argc, char *argv[]) {
             if (lar >= seq_count - 1) send_done = true;
         }
 
+        cout << "\r[SENT " << buffer_num * max_buffer_size + buffer_size << " BYTES]" << endl;
         buffer_num += 1;
         if (read_done) break;
     }
