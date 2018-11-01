@@ -1,4 +1,5 @@
 <img src="logo.png">
+
 Sliding Window Protocol
 &middot;
 [![GitLab license](https://img.shields.io/github/license/Day8/re-frame.svg)](LICENSE)
