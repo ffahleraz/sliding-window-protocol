@@ -42,6 +42,7 @@ int main(int argc, char * argv[]) {
     int window_len;
     int max_buffer_size;
     char *fname;
+    string fdir = "./data/";
 
     if (argc == 5) {
         fname = argv[1];
@@ -52,6 +53,8 @@ int main(int argc, char * argv[]) {
         cerr << "usage: ./recvfile <filename> <window_size> <buffer_size> <port>" << endl;
         return 1;
     }
+    string temp = fname;
+    strcpy(fname, (fdir + temp).c_str());
 
     memset(&server_addr, 0, sizeof(server_addr)); 
     memset(&client_addr, 0, sizeof(client_addr)); 
