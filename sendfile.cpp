@@ -213,11 +213,13 @@ int main(int argc, char *argv[]) {
             if (lar >= seq_count - 1) send_done = true;
         }
 
-        cout << "\r[SENT " << buffer_num * max_buffer_size + buffer_size << " BYTES]" << endl;
+        cout << "\r" << "[SENT " << (unsigned long long) buffer_num * (unsigned long long) 
+                max_buffer_size + (unsigned long long) buffer_size << " BYTES]" << flush;
         buffer_num += 1;
         if (read_done) break;
     }
     
+    cout << endl;
     fclose(file);
     delete [] window_ack_mask;
     delete [] window_sent_time;

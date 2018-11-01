@@ -156,7 +156,8 @@ int main(int argc, char * argv[]) {
             if (lfr >= recv_seq_count - 1) break;
         }
 
-        cout << "\r[RECEIVED " << buffer_num * max_buffer_size + buffer_size << " BYTES]" << endl;
+        cout << "\r" << "[RECEIVED " << (unsigned long long) buffer_num * (unsigned long long) 
+                max_buffer_size + (unsigned long long) buffer_size << " BYTES]" << flush;
         fwrite(buffer, 1, buffer_size, file);
         buffer_num += 1;
     }
@@ -164,7 +165,7 @@ int main(int argc, char * argv[]) {
     fclose(file);
 
     /* Start thread to keep sending requested ack to sender for 3 seconds */
-    cout << "[STANDBY TO SEND ACK FOR 3 SECONDS...]" << endl;
+    cout << endl << "[STANDBY TO SEND ACK FOR 3 SECONDS...]" << endl;
     thread stdby_thread(send_ack);
     sleep_for(3000);
     stdby_thread.detach();
