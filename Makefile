@@ -1,10 +1,10 @@
 all: recvfile sendfile
 
-recvfile: helpers.h helpers.cpp recvfile.cpp
-	g++ -std=c++11 -pthread helpers.cpp recvfile.cpp -o recvfile
+recvfile: src/helpers.h src/helpers.cpp src/recvfile.cpp
+	g++ -std=c++11 -pthread src/helpers.cpp src/recvfile.cpp -o recvfile
 
-sendfile:helpers.h helpers.cpp sendfile.cpp
-	g++ -std=c++11 -pthread helpers.cpp sendfile.cpp -o sendfile
+sendfile: src/helpers.h src/helpers.cpp src/sendfile.cpp
+	g++ -std=c++11 -pthread src/helpers.cpp src/sendfile.cpp -o sendfile
 
 clean: recvfile sendfile
 	rm -f recvfile sendfile
