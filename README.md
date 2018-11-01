@@ -64,7 +64,7 @@ to reset:
 $ sudo tc qdisc change dev lo root netem loss 0%
 ```
 
-**BUFFER SIZE recvfile & BUFFER SIZE sendfile MUST BE SAME!!**
+> `buffer_size` and `window_size` on recvfile and sendfile must be the same. 
 
 ## Data
 The default place to store data to send and store the received data is on the `data` folder.
