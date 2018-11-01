@@ -1,5 +1,6 @@
 .vscode
 *.txt
+!data/sample.txt
 *.jpg
 *.jpeg
 *.png
