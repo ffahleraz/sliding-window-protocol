@@ -49,7 +49,6 @@ $ ./sendfile <filename> <window_size> <buffer_size> <ip> <port>
 
 ## Words from Authors
 Thanks to Mr. Achmad Imam Kistijantoro ST,M.Sc.,Ph.D. for his amazing project about *Lossles Data Transfer*
-> “Computer network system analysis is like child-rearing; you can do grievous damage, but you cannot ensure success.”  - DJ Zali
 
 ## References
 * [Computer Networks: A Systems Approach (The Morgan Kaufmann Series in Networking) 5th Edition](https://www.amazon.com/Computer-Networks-Fifth-Approach-Networking/dp/0123850592)
