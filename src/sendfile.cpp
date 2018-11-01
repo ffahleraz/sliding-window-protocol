@@ -59,6 +59,7 @@ int main(int argc, char *argv[]) {
     int max_buffer_size;
     struct hostent *dest_hnet;
     char *fname;
+    string fdir = "./data/";
 
     if (argc == 6) {
         fname = argv[1];
@@ -70,6 +71,8 @@ int main(int argc, char *argv[]) {
         cerr << "usage: ./sendfile <filename> <window_len> <buffer_size> <destination_ip> <destination_port>" << endl;
         return 1; 
     }
+    string temp = fname;
+    strcpy(fname, (fdir + temp).c_str());
 
     /* Get hostnet from server hostname or IP address */ 
     dest_hnet = gethostbyname(dest_ip); 

@@ -1,8 +1,6 @@
+# Sliding Window Protocol
 [![GitLab license](https://img.shields.io/github/license/Day8/re-frame.svg)](LICENSE)
 =====
-
-# Sliding Window Protocol
-
 The sliding window protocol is a feature of datagram-oriented transmission protocols. Sliding window protocols are used where reliable in-order delivery of packets is required. In this case, we implemented a sliding window protocol to ensure in-order reliable transmission for UDP sockets.
 
 ## Table Of Contents
