@@ -3,7 +3,7 @@
 !data/sample.txt
 *.jpg
 *.jpeg
-*.png
+*.png!logo.png
 *.mp4
 recvfile
 sendfile
