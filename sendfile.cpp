@@ -219,10 +219,11 @@ int main(int argc, char *argv[]) {
         if (read_done) break;
     }
     
-    cout << endl;
     fclose(file);
     delete [] window_ack_mask;
     delete [] window_sent_time;
     recv_thread.detach();
+
+    cout << "\nAll done :)" << endl;
     return 0;
 }

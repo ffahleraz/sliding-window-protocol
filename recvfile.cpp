@@ -7,6 +7,8 @@
 
 #include "helpers.h"
 
+#define STDBY_TIME 3000
+
 using namespace std;
 
 int socket_fd;
@@ -165,10 +167,20 @@ int main(int argc, char * argv[]) {
     fclose(file);
 
     /* Start thread to keep sending requested ack to sender for 3 seconds */
-    cout << endl << "[STANDBY TO SEND ACK FOR 3 SECONDS...]" << endl;
     thread stdby_thread(send_ack);
-    sleep_for(3000);
+    time_stamp start_time = current_time();
+    while (elapsed_time(current_time(), start_time) < STDBY_TIME) {
+        cout << "\r" << "[STANDBY TO SEND ACK FOR 3 SECONDS | ]" << flush;
+        sleep_for(100);
+        cout << "\r" << "[STANDBY TO SEND ACK FOR 3 SECONDS / ]" << flush;
+        sleep_for(100);
+        cout << "\r" << "[STANDBY TO SEND ACK FOR 3 SECONDS - ]" << flush;
+        sleep_for(100);
+        cout << "\r" << "[STANDBY TO SEND ACK FOR 3 SECONDS \\ ]" << flush;
+        sleep_for(100);
+    }
     stdby_thread.detach();
 
+    cout << "\nAll done :)" << endl;
     return 0;
 }
