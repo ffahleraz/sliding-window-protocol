@@ -1,14 +1,13 @@
 <img src="logo.png">
 
-# Sliding Window Protocol
+Sliding Window Protocol
 &middot;
 [![GitLab license](https://img.shields.io/github/license/Day8/re-frame.svg)](LICENSE)
 =====
-The sliding window protocol is a feature of datagram-oriented transmission protocols. Sliding window protocols are used where reliable in-order delivery of packets is required. In this case, we implemented a sliding window protocol to ensure in-order reliable transmission for UDP sockets.
+The sliding window protocol is a feature of datagram-oriented transmission protocols. The sliding window protocol is used where reliable in-order delivery of packets is required. In this case, we implemented a sliding window protocol to ensure reliable in-order transmission of data over a **UDP socket** using **C++**. It is open-source and everyone can contribute to this project by creating a pull request.
 
 ## Table Of Contents
-- [Introduction](#introduction)
-- [How The Sliding Windows Protocol Works](#how-the-sliding-window-protocol-works)
+- [How The Sliding Window Protocol Works](#how-the-sliding-window-protocol-works)
 - [Documentation](#documentation)
 - [Installing](#installing)
 - [Running](#running)
@@ -16,9 +15,6 @@ The sliding window protocol is a feature of datagram-oriented transmission proto
 - [Authors](#authors)
 - [Words from Authors](#words-from-authors)
 - [References](#references)
-
-## Introduction
-This is an implementation of a sliding window protocol on **UDP socket** using **C++**. It is open-source and everyone can contribute to this project by creating a pull request.
 
 ## How The Sliding Window Protocol Works
 <img src="sliding-window-protocol.gif">
