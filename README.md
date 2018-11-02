@@ -10,8 +10,8 @@ The sliding window protocol is a feature of datagram-oriented transmission proto
 - [Introduction](#introduction)
 - [Installation](#installation)
 - [How Sliding Windows Protocol Works](#how-sliding-window-protocol-works)
-- [Run Simulation](#run-simulation)
 - [Documentation](#documentation)
+- [Run Simulation](#run-simulation)
 - [Authors](#authors)
 - [Words from Authors](#word-from-authors)
 - [References](#references)
@@ -20,8 +20,17 @@ The sliding window protocol is a feature of datagram-oriented transmission proto
 This is an implementation of a sliding window protocol on **UDP socket** using **C++**. It is open-source and everyone can contribute to this project by creating pull request.
 
 ## How Sliding Window Protocol Works
+Animation :
+
+## Documentation
 In our program, we implemented the program to actually do the sliding window protocol on **UDP socket** using **C++**. We create helper functions that are responsible to create and read frame, and create and read ACKs. We also implemented the sliding window in each corresponding file (`recvfile.cpp` and `sendfile.cpp`) that handles everything from sending ACK if the frame valid, resend the frame if timeout occurs, and resend the frame right away if NAK is received.
 
+### sendfile
+We use two threads on our `sendfile.cpp` in order to implement the sliding window protocol. The first thread is to send the packets to the client, while the other one is to receive ACK or NAK from the client. We run **listen_ack()** function on `sendfile.cpp` on a new thread. Using multiple threads, our sendfile could send frames and receive ACK on the same time.
+We also implement a mutex lock in order to maintain the integrity of the data that was used parallelly between two threads.
+
+### recvfile
+On our `recvfile.cpp`, we will receive frame from the sendfile, check whether the frame that recvfile received is correct or not using checksum, and send ACK/NAK to the sendfile. Recvfile will write buffer per buffer into a new file.
 
 ## Installation
 You need to install **g++** and run it on **Ubuntu**/**Mac** Operating System. List of build commands:
@@ -69,7 +78,6 @@ $ sudo tc qdisc change dev lo root netem loss 0%
 ## Data
 The default place to store data to send and store the received data is on the `data` folder.
 
-## Documentation
 ### Authors
 1. Faza Fahleraz https://github.com/ffahleraz
 2. Nicholas Rianto Putra https://github.com/nicholaz99
