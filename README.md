@@ -22,6 +22,12 @@ This is an implementation of a sliding window protocol on **UDP socket** using *
 ## How Sliding Window Protocol Works
 <img src="sliding-window-protocol.gif">
 
+We implemented the Sliding Window Protocol using Selective Repeat Protocol that requires the receiver to receive out of order data. Because of this requirement, the receiver must be able to buffer the packets. This protocol retransmits the data under 2 condition:
+1. The receiver received the packet, but the packet(s) are not ACKed. We assume that the packet(s) are lost in transmission, hence the sender retransmits the packet.
+2. The receiver received the packet, but the packet(s) are invalid or rejected by the receiver. Then the receiver sends NAK to notify the sender to begin retransmission immediately.
+
+Sender and receiver has their own respective window to mark Last Acknowledgement Received, Last Frame Sent, and Last Frame Received, Largest Acceptable Frame. First the sender sends all the sequence in the window and waits for each ACK. If the ACK was received, the sender will move the LAR and the LFS by one sequence. When the receiver accepts a frame, it will automatically move the LFR and LAF by one sequence and able to receive.
+
 ## Documentation
 In our program, we implemented the program to actually do the sliding window protocol on **UDP socket** using **C++**. We create helper functions that are responsible to create and read frame, and create and read ACKs. We also implemented the sliding window in each corresponding file (`recvfile.cpp` and `sendfile.cpp`) that handles everything from sending ACK if the frame valid, resend the frame if timeout occurs, and resend the frame right away if NAK is received.
 
