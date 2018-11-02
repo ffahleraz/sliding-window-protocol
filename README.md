@@ -1,22 +1,23 @@
 <img src="logo.png">
 
-Sliding Window Protocol
+# Sliding Window Protocol
 &middot;
 [![GitLab license](https://img.shields.io/github/license/Day8/re-frame.svg)](LICENSE)
 =====
 The sliding window protocol is a feature of datagram-oriented transmission protocols. Sliding window protocols are used where reliable in-order delivery of packets is required. In this case, we implemented a sliding window protocol to ensure in-order reliable transmission for UDP sockets.
 
-# Table Of Contents
+## Table Of Contents
 - [Introduction](#introduction)
-- [Installation](#installation)
-- [How Sliding Windows Protocol Works](#how-sliding-window-protocol-works)
+- [How The Sliding Windows Protocol Works](#how-the-sliding-window-protocol-works)
 - [Documentation](#documentation)
-- [Run Simulation](#run-simulation)
+- [Installing](#installing)
+- [Running](#running)
+- [Simulating Packet Loss](#simulating-packet-loss)
 - [Authors](#authors)
-- [Words from Authors](#word-from-authors)
+- [Words from Authors](#words-from-authors)
 - [References](#references)
 
-# Introduction
+## Introduction
 This is an implementation of a sliding window protocol on **UDP socket** using **C++**. It is open-source and everyone can contribute to this project by creating a pull request.
 
 ## How The Sliding Window Protocol Works
@@ -91,13 +92,13 @@ $ sudo tc qdisc change dev lo root netem loss 0%
 
 > `buffer_size` and `window_size` on both recvfile and sendfile must be the same. 
 
-### Authors
+## Authors
 1. Faza Fahleraz https://github.com/ffahleraz
 2. Nicholas Rianto Putra https://github.com/nicholaz99
 3. Abram Perdanaputra https://github.com/abrampers
 
-### Word from Authors
+## Words from Authors
 Thanks to Mr. Achmad Imam Kistijantoro ST,M.Sc.,Ph.D. for his amazing project about *Lossles Data Transfer*
 
-### References
+## References
 * [Computer Networks: A Systems Approach (The Morgan Kaufmann Series in Networking) 5th Edition](https://www.amazon.com/Computer-Networks-Fifth-Approach-Networking/dp/0123850592)
