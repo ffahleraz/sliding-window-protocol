@@ -20,7 +20,7 @@ The sliding window protocol is a feature of datagram-oriented transmission proto
 This is an implementation of a sliding window protocol on **UDP socket** using **C++**. It is open-source and everyone can contribute to this project by creating pull request.
 
 ## How Sliding Window Protocol Works
-Animation :
+<img src="sliding-window-protocol.gif">
 
 ## Documentation
 In our program, we implemented the program to actually do the sliding window protocol on **UDP socket** using **C++**. We create helper functions that are responsible to create and read frame, and create and read ACKs. We also implemented the sliding window in each corresponding file (`recvfile.cpp` and `sendfile.cpp`) that handles everything from sending ACK if the frame valid, resend the frame if timeout occurs, and resend the frame right away if NAK is received.
